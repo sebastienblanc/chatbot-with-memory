@@ -1,0 +1,20 @@
+spin_manifest_version = 2
+
+[application]
+authors = ["Sebastien Blanc <scm.blanc@gmail.com>"]
+description = "A chat bot that has memory and can handle multiple contexts"
+name = "chat-with-memory"
+version = "0.1.0"
+
+[[trigger.http]]
+route = "/..."
+component = "chat-with-memory"
+
+[component.chat-with-memory]
+source = "target/chat-with-memory.wasm"
+allowed_outbound_hosts = ["rediss://your-redis-server:port"]
+ai_models = ["llama2-chat"]
+exclude_files = ["**/node_modules"]
+[component.chat-with-memory.build]
+command = "npm run build"
+watch = ["src/**/*.ts", "package.json"]
