@@ -12,7 +12,7 @@ component = "chat-with-memory"
 
 [component.chat-with-memory]
 source = "target/chat-with-memory.wasm"
-allowed_outbound_hosts = ["rediss://your-redis-server:port"]
+allowed_outbound_hosts = ["rediss://<server>:<port>>"]
 ai_models = ["llama2-chat"]
 exclude_files = ["**/node_modules"]
 [component.chat-with-memory.build]

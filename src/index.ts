@@ -10,7 +10,7 @@ import {
 const model = InferencingModels.Llama2Chat
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
-const redisAddress = "rediss://your-redis-address"
+const redisAddress = "rediss://default:<password>@<server>:22234"
 
 interface ChatRequest {
     id?: number,
@@ -26,16 +26,31 @@ interface ChatResponse {
     timestamp?: string,
     numberOfTokens: number
 }
-
-const PROMPT = `\
+const FIRST_ELEMENT_PROMPT = `\
+<s>
 [INST]
 <<SYS>>
 {CONTEXT}
 It is currently : {CURRENT_TIME}
-{HISTORY}
 <</SYS>>
 {SENTENCE}
 [/INST]
+</s>
+`;
+
+const PROMPT = `\
+<s>
+[INST]
+<<SYS>>
+{CONTEXT}
+It is currently : {CURRENT_TIME}
+<</SYS>>
+[/INST]
+</s>
+{HISTORY}
+<s>
+[INST]{SENTENCE}[/INST]
+</s>
 `;
 
 const CONTEXT_PREFIX_KEY = "chat:context:"
@@ -80,34 +95,33 @@ function generateChatResponse(chatId: bigint, chatRequest: ChatRequest, inferRes
 }
 
 function generatePrompt(context: string, sentence: string, history: any): string {
-    let prompt = PROMPT.replace("{CONTEXT}", context)
-    prompt = prompt.replace("{CURRENT_TIME}", Date())
-    prompt = prompt.replace("{SENTENCE}", sentence)
+
+    let prompt
     if (history === "[]") {
-        prompt = prompt.replace("{HISTORY}", "")
+        prompt = FIRST_ELEMENT_PROMPT.replace("{CONTEXT}", context)
+        prompt = prompt.replace("{CURRENT_TIME}", Date())
+        prompt = prompt.replace("{SENTENCE}", sentence)
     } else {
+        prompt = PROMPT.replace("{CONTEXT}", context)
+        prompt = prompt.replace("{CURRENT_TIME}", Date())
+        prompt = prompt.replace("{SENTENCE}", sentence)
         prompt = prompt.replace("{HISTORY}", generateHistory(convertHistory(history)))
     }
-    console.log(prompt)
     return prompt
 }
 
 function generateHistory(rawHistory: any[]): string {
-    let history = `\
-Here is the chat history: 
-
-  `;
+    let history = ""
     //iterate over the history and add it to the history string
     rawHistory.forEach(rawChat => {
         let chat = rawChat as ChatResponse
-        let chatHistory = "---- \n" + chat.timestamp + " user: " + chat.prompt + "\n" + chat.timestamp + " bot: " + chat.reply + "\n"
+        let chatHistory = "\n <s>[INST]" + chat.timestamp + "  " + chat.prompt + "[/INST] " + chat.reply + "</s>"
         history = history.concat(chatHistory)
     })
     return history
 }
 
 function convertHistory(history: any) {
-    console.log(history)
     let result: string = ""
     const values: number[] = history.toString().split(',').map(Number)
     values.forEach((value: number) => {
